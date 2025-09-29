@@ -52,8 +52,11 @@ function drawNumber() {
     console.log(`Número Sorteado: ${drawn}`);
 
     // Envia o novo número sorteado para todos
-    io.emit('numero_sorteado', drawn);
-}
+   socket.emit('estado_inicial', {
+    // ...
+    lastDrawn: drawnNumbers[drawnNumbers.length - 1], // Pode ser undefined
+    // ...
+});
 
 function updatePlayerList() {
     // Converte o objeto de jogadores em um array de nomes
@@ -114,3 +117,4 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
     console.log(`Servidor de Bingo rodando em http://localhost:${PORT}`);
 });
+
