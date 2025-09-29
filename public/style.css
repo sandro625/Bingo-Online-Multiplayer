@@ -1,0 +1,138 @@
+body {
+    font-family: sans-serif;
+    background-color: #f0f0f0;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px;
+    margin: 0;
+}
+
+.container {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 900px; /* Aumentado para acomodar a cartela */
+    text-align: center;
+}
+
+h1 {
+    color: #e74c3c;
+    margin-bottom: 20px;
+}
+
+.current-draw {
+    margin: 30px 0;
+}
+
+.number-display {
+    font-size: 5em;
+    font-weight: bold;
+    color: #2ecc71;
+    border: 5px solid #2ecc71;
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    margin: 20px auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Estilos de Botões */
+.controls button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    margin: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s;
+}
+
+.controls button:hover {
+    background-color: #2980b9;
+}
+
+.controls button:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+.secondary-button {
+    background-color: #95a5a6;
+}
+
+.secondary-button:hover {
+    background-color: #7f8c8d;
+}
+
+/* Estilos da Cartela */
+#bingoCard {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px auto;
+    max-width: 600px;
+}
+
+#bingoCard th {
+    background-color: #e74c3c;
+    color: white;
+    padding: 10px 5px;
+    font-size: 0.9em;
+    border: 1px solid #c0392b;
+}
+
+#bingoCard td {
+    width: 20%;
+    height: 60px;
+    font-size: 1.5em;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    background-color: #f7f7f7;
+    cursor: pointer; /* Indica que é clicável */
+    transition: background-color 0.2s, transform 0.1s;
+    user-select: none; /* Evita seleção de texto */
+}
+
+#bingoCard td:hover:not(.marked) {
+    background-color: #e8e8e8;
+}
+
+/* Estilo para número marcado */
+#bingoCard .marked {
+    background-color: #2ecc71;
+    color: white;
+    transform: scale(1.05);
+}
+
+.history {
+    margin-top: 40px;
+    text-align: left;
+}
+
+#historyList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #ecf0f1;
+    min-height: 50px;
+}
+
+#historyList div {
+    background-color: #f39c12;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-weight: bold;
+    font-size: 0.9em;
+}

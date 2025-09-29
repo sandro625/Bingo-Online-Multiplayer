@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo com Cartela Interativa</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>BINGO ONLINE</h1>
+        
+        <div class="current-draw">
+            <h2>Último Sorteado:</h2>
+            <div id="drawnNumber" class="number-display">?</div>
+        </div>
+
+        <div class="controls">
+            <button id="drawButton">Sortear Número</button>
+            <button id="generateCardButton" class="secondary-button">Gerar Nova Cartela</button>
+            <button id="resetButton" class="secondary-button">Reiniciar Sorteio</button>
+        </div>
+
+        <div class="game-area">
+            <h2 id="winStatus">Sua Cartela</h2>
+            
+            <table id="bingoCard">
+                <tr><th>B (1-15)</th><th>I (16-30)</th><th>N (31-45)</th><th>G (46-60)</th><th>O (61-75)</th></tr>
+                </table>
+        </div>
+
+        <div class="history">
+            <h2>Números Sorteados:</h2>
+            <div id="historyList">Nenhum número sorteado ainda.</div>
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script> 
+    <script src="script.js"></script>
+</body>
