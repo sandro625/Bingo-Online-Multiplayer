@@ -105,16 +105,17 @@ io.on('connection', (socket) => {
         });
     });
 
+ / ... (Toda a lógica dentro de io.on('connection', ...) )
+
     // Ouve a desconexão
     socket.on('disconnect', () => {
         console.log(`Jogador desconectado: ${socket.id}`);
         delete players[socket.id];
         updatePlayerList(); // Atualiza a lista
     });
-});
+}); // <--- VERIFIQUE SE ESTA CHAVE E PARÊNTESE EXISTEM! (Linha ~118-120)
 
 // 4. Iniciar o Servidor
 server.listen(PORT, () => {
     console.log(`Servidor de Bingo rodando em http://localhost:${PORT}`);
 });
-
