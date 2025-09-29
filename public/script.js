@@ -1,248 +1,174 @@
-// script.js
+// public/script.js - CÓDIGO ATUALIZADO
 
-// --- Configuração e Conexão Socket.IO ---
 const socket = io(); 
 
-// --- Constantes do Jogo ---
+// --- Variáveis e Constantes (Mantidas) ---
 const MAX_NUMBER = 75;
 const NUMBERS_PER_COLUMN = 15;
 const COLUMN_NAMES = ['B', 'I', 'N', 'G', 'O'];
 
-// --- Variáveis Globais (Local) ---
 let drawnNumbers = [];
-let cardNumbers = {}; // Armazena a estrutura da cartela
+let cardNumbers = {};
+let myUsername = '';
+let isGameStarted = false;
 
-// --- Elementos do DOM ---
-// É CRUCIAL que todos esses elementos existam no seu index.html
+// --- Elementos do DOM (Novos e Atualizados) ---
 const drawnNumberElement = document.getElementById('drawnNumber');
 const historyListElement = document.getElementById('historyList');
-const drawButton = document.getElementById('drawButton');
 const generateCardButton = document.getElementById('generateCardButton');
 const resetButton = document.getElementById('resetButton');
 const bingoCardElement = document.getElementById('bingoCard');
 const winStatusElement = document.getElementById('winStatus');
 
+// Elementos NOVO para Login/Controle
+const loginScreen = document.getElementById('login-screen');
+const usernameInput = document.getElementById('usernameInput');
+const joinButton = document.getElementById('joinButton');
+const gameContent = document.getElementById('game-content');
+const playerListElement = document.getElementById('playerList');
+const startButton = document.getElementById('startButton');
+
 
 // ----------------------------------------------------------------------
-//                       FUNÇÕES DA CARTELA
+//                       FUNÇÕES DA CARTELA (Mantidas)
 // ----------------------------------------------------------------------
+// ... (Copie e cole aqui as funções generateCard(), autoMarkCard(), markCard(), e checkForWin() do seu código anterior)
 
-/**
- * Gera uma cartela de Bingo com números únicos por coluna.
- */
+// EXEMPLO de generateCard para lembrar de incluir:
 function generateCard() {
-    cardNumbers = {};
-    bingoCardElement.innerHTML = '<tr><th>B (1-15)</th><th>I (16-30)</th><th>N (31-45)</th><th>G (46-60)</th><th>O (61-75)</th></tr>';
-    winStatusElement.textContent = 'Sua Cartela'; 
-    winStatusElement.style.color = '#333';
-
-    for (let i = 0; i < 5; i++) { // 5 linhas
-        const row = bingoCardElement.insertRow(-1);
-        
-        for (let j = 0; j < 5; j++) { // 5 colunas
-            const cell = row.insertCell(-1);
-            const colIndex = j;
-            
-            const min = colIndex * NUMBERS_PER_COLUMN + 1;
-            const max = (colIndex + 1) * NUMBERS_PER_COLUMN;
-            
-            let number;
-
-            // Célula central (Livre)
-            if (i === 2 && j === 2) {
-                number = 'Livre';
-                cell.textContent = number;
-                cell.classList.add('marked');
-                cell.style.cursor = 'default';
-            } else {
-                // Sorteia números únicos para a coluna
-                const columnKey = COLUMN_NAMES[j];
-                let columnUsedNumbers = cardNumbers[columnKey] || [];
-                
-                do {
-                    number = Math.floor(Math.random() * (max - min + 1)) + min;
-                } while (columnUsedNumbers.includes(number));
-
-                columnUsedNumbers.push(number);
-                cardNumbers[columnKey] = columnUsedNumbers;
-                
-                cell.textContent = number;
-                cell.id = `cell-${number}`; // ID crucial para o autoMarkCard
-                cell.addEventListener('click', () => markCard(number, cell));
-            }
-        }
-    }
-    
-    // Após gerar, marca os números que já foram sorteados
-    drawnNumbers.forEach(num => autoMarkCard(num));
-    console.log('Nova Cartela Gerada com sucesso.');
+    // ... lógica de gerar a cartela no bingoCardElement ...
+    // É crucial que esta função esteja aqui!
 }
-
-/**
- * Marca automaticamente o número sorteado na cartela, se ele existir.
- */
-function autoMarkCard(number) {
-    const cell = document.getElementById(`cell-${number}`);
-    if (cell && !cell.classList.contains('marked')) {
-        cell.classList.add('marked');
-        checkForWin(); // Verifica a vitória após a marcação automática
-    }
-}
-
-/**
- * Permite marcação manual APENAS se o número tiver sido sorteado.
- */
-function markCard(number, cell) {
-    if (drawnNumbers.includes(parseInt(number)) && !cell.classList.contains('marked')) {
-        cell.classList.add('marked');
-        checkForWin();
-    } else if (!drawnNumbers.includes(parseInt(number)) && number !== 'Livre') {
-        alert(`O número ${number} ainda não foi sorteado!`);
-    }
-}
-
-/**
- * Verifica se o jogador fez Bingo (linha, coluna ou diagonal completa) e notifica o servidor.
- */
-function checkForWin() {
-    const rows = bingoCardElement.rows;
-    let isBingo = false;
-
-    // Se a tabela não foi gerada ou está vazia, retorna
-    if (rows.length < 6) return; 
-
-    // Converte a cartela para uma matriz de células
-    const cells = Array.from(rows).slice(1).map(row => Array.from(row.cells));
-
-    // 1. Verificar Linhas e Colunas
-    for (let i = 0; i < 5; i++) {
-        const rowWin = cells[i].every(cell => cell.classList.contains('marked'));
-        const colWin = cells.every(row => row[i].classList.contains('marked'));
-        
-        if (rowWin || colWin) {
-            isBingo = true;
-            break;
-        }
-    }
-
-    // 2. Verificar Diagonais
-    const diag1Win = cells.every((row, i) => row[i].classList.contains('marked'));
-    if (!isBingo && diag1Win) isBingo = true;
-
-    const diag2Win = cells.every((row, i) => row[4 - i].classList.contains('marked'));
-    if (!isBingo && diag2Win) isBingo = true;
-
-    if (isBingo && winStatusElement.textContent !== 'BINGO! AGUARDANDO VERIFICAÇÃO...') {
-        // AVISAR O SERVIDOR QUE FOI BINGO!
-        socket.emit('bingo', { playerId: socket.id, card: cardNumbers }); 
-        winStatusElement.textContent = 'BINGO! AGUARDANDO VERIFICAÇÃO...';
-        winStatusElement.style.color = 'blue';
-    } else if (!isBingo && winStatusElement.textContent !== 'BINGO! AGUARDANDO VERIFICAÇÃO...') {
-        winStatusElement.textContent = 'Sua Cartela';
-        winStatusElement.style.color = '#333';
-    }
-}
+// ----------------------------------------------------------------------
 
 
 // ----------------------------------------------------------------------
-//                  FUNÇÕES DE INICIALIZAÇÃO E DISPLAY
+//                 FUNÇÕES DE INICIALIZAÇÃO E DISPLAY
 // ----------------------------------------------------------------------
 
-/**
- * Atualiza o número exibido e a lista de histórico.
- */
 function updateDisplay(drawn) {
-    // Exibe o último número sorteado
-    drawnNumberElement.textContent = drawn;
-
-    // Atualiza a lista de histórico
-    historyListElement.innerHTML = ''; 
-    if (drawnNumbers.length === 0) {
-        historyListElement.innerHTML = 'Nenhum número sorteado ainda.';
-        return;
-    }
-    drawnNumbers.forEach(num => {
-        const numElement = document.createElement('div');
-        numElement.textContent = num;
-        historyListElement.appendChild(numElement);
-    });
+    // ... (Mantido: Lógica para atualizar o número sorteado e o histórico) ...
 }
 
-/**
- * Prepara o estado inicial do cliente e gera a cartela.
- */
 function initializeGame() {
+    // Esta função é chamada ao reiniciar
     drawnNumbers = [];
+    isGameStarted = false;
     drawnNumberElement.textContent = '?';
-    historyListElement.innerHTML = 'Nenhum número sorteado ainda.';
-    drawButton.disabled = false;
+    historyListElement.innerHTML = 'Aguardando início do jogo.';
     
-    // GERAÇÃO DA CARTELA
+    // O botão 'Iniciar' é re-exibido quando o jogo está pronto
+    if (myUsername) {
+        startButton.style.display = 'block';
+    }
+    
+    // Gerar cartela padrão
     generateCard(); 
-    
-    console.log('Cliente pronto.');
 }
-
 
 // ----------------------------------------------------------------------
 //                         EVENT LISTENERS
 // ----------------------------------------------------------------------
 
-// AÇÃO 1: Botão de Sortear (Envia comando ao servidor)
-drawButton.addEventListener('click', () => {
-    socket.emit('sortear');
-    drawButton.disabled = true;
+// NOVO: Lógica de Login
+joinButton.addEventListener('click', () => {
+    let username = usernameInput.value.trim();
+    if (username.length > 2) {
+        myUsername = username;
+        // Envia o nome de usuário para o servidor
+        socket.emit('set_username', myUsername);
+    } else {
+        alert('Por favor, digite um nome de usuário válido.');
+    }
 });
 
-// AÇÃO 2: Botão de Reiniciar (Gera nova cartela e limpa o estado local)
-// Note que o sorteio em si só é reiniciado pelo servidor
-resetButton.addEventListener('click', initializeGame);
+// NOVO: Botão Iniciar Jogo
+startButton.addEventListener('click', () => {
+    // Envia o comando para o SERVIDOR iniciar o sorteio automático
+    socket.emit('iniciar_jogo');
+    startButton.style.display = 'none'; // Esconde o botão após o clique
+});
 
-// AÇÃO 3: Botão de Gerar Nova Cartela
+// AÇÕES DO JOGO
 generateCardButton.addEventListener('click', generateCard);
-
-// Inicializa a página assim que o DOM estiver carregado
-document.addEventListener('DOMContentLoaded', initializeGame);
+resetButton.addEventListener('click', initializeGame);
 
 
 // ----------------------------------------------------------------------
 //                       ESCURO DO SERVIDOR (SOCKET.IO)
 // ----------------------------------------------------------------------
 
-// 1. Ouve o estado inicial ao entrar no jogo (o servidor envia isso)
+// 1. Confirmação de Login
+socket.on('username_set', (name) => {
+    loginScreen.style.display = 'none';
+    gameContent.style.display = 'block';
+    console.log(`Logado como: ${name}`);
+    // Exibe o botão de início
+    startButton.style.display = 'block';
+});
+
+// 2. Ouve o estado inicial (ao entrar)
 socket.on('estado_inicial', (data) => {
     drawnNumbers = data.drawn || [];
-    if (data.lastDrawn) {
-        updateDisplay(data.lastDrawn);
-    } else {
-        updateDisplay('?');
+    isGameStarted = data.gameStarted;
+    updateDisplay(data.lastDrawn || '?');
+    
+    // Se o jogo já estiver rolando, esconde o botão de início
+    if (isGameStarted) {
+        startButton.style.display = 'none';
+    } else if (myUsername) {
+        startButton.style.display = 'block';
     }
-    // Marca na cartela nova os números já sorteados
+
+    // Atualiza a lista de jogadores ao entrar
+    updatePlayerListDisplay(data.players);
     drawnNumbers.forEach(num => autoMarkCard(num));
-    console.log('Estado inicial do jogo carregado.');
 });
 
-// 2. Ouve o número sorteado pelo Servidor
-socket.on('numero_sorteado', (drawn) => {
-    drawButton.disabled = false; 
-    
-    // Armazena e atualiza a interface localmente
-    drawnNumbers.push(drawn);
-    drawnNumbers.sort((a, b) => a - b);
-    updateDisplay(drawn); 
-    
-    // Marca na cartela localmente e verifica vitória
-    autoMarkCard(drawn);
+// 3. Ouve atualização da lista de jogadores
+socket.on('player_list_update', (playerNames) => {
+    updatePlayerListDisplay(playerNames);
 });
 
-// 3. Ouve a vitória de outro jogador ou a confirmação de vitória
-socket.on('vencedor', (data) => {
-    // Geralmente o servidor enviaria 'VENCEDOR CONFIRMADO' ou 'BINGO INVÁLIDO'
-    if (data.id === socket.id) {
-         winStatusElement.textContent = 'BINGO! VOCÊ GANHOU!';
-    } else {
-        winStatusElement.textContent = `VENCEDOR: Jogador ${data.id.substring(0, 4)}!`;
+// NOVO: Função auxiliar para atualizar a lista
+function updatePlayerListDisplay(playerNames) {
+    playerListElement.innerHTML = '';
+    if (playerNames.length === 0) {
+        playerListElement.textContent = 'Ninguém mais online.';
+        return;
     }
+    playerNames.forEach(name => {
+        const div = document.createElement('div');
+        div.textContent = name;
+        playerListElement.appendChild(div);
+    });
+}
+
+// 4. Ouve o início/fim do jogo
+socket.on('game_state_update', (data) => {
+    isGameStarted = data.gameStarted;
+    if (isGameStarted) {
+        startButton.style.display = 'none';
+        console.log("Servidor iniciou o sorteio automático!");
+    }
+});
+
+// 5. Ouve o número sorteado (Mantido)
+socket.on('numero_sorteado', (drawn) => {
+    // ... (Lógica de adicionar número ao histórico e marcar cartela) ...
+});
+
+// 6. Ouve a vitória (Atualizado para mostrar o nome)
+socket.on('vencedor', (data) => {
     alert(`FIM DE JOGO! ${data.mensagem}`);
+    winStatusElement.textContent = `VENCEDOR: ${data.name}!`;
     winStatusElement.style.color = 'red';
+});
+
+
+// Inicializa a página
+document.addEventListener('DOMContentLoaded', () => {
+    // Se o usuário já tiver o nome definido (em um cenário mais complexo), pularia o login.
+    // Neste caso, apenas gera a cartela ao carregar.
+    generateCard(); 
 });
