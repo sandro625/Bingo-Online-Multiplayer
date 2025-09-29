@@ -1,8 +1,8 @@
-// public/script.js - CÓDIGO ATUALIZADO
+// public/script.js - Versão Completa e Corrigida
 
 const socket = io(); 
 
-// --- Variáveis e Constantes (Mantidas) ---
+// --- Variáveis e Constantes ---
 const MAX_NUMBER = 75;
 const NUMBERS_PER_COLUMN = 15;
 const COLUMN_NAMES = ['B', 'I', 'N', 'G', 'O'];
@@ -12,7 +12,7 @@ let cardNumbers = {};
 let myUsername = '';
 let isGameStarted = false;
 
-// --- Elementos do DOM (Novos e Atualizados) ---
+// --- Elementos do DOM ---
 const drawnNumberElement = document.getElementById('drawnNumber');
 const historyListElement = document.getElementById('historyList');
 const generateCardButton = document.getElementById('generateCardButton');
@@ -30,16 +30,92 @@ const startButton = document.getElementById('startButton');
 
 
 // ----------------------------------------------------------------------
-//                       FUNÇÕES DA CARTELA (Mantidas)
+//                       FUNÇÕES DA CARTELA (COMPLETAS)
 // ----------------------------------------------------------------------
-// ... (Copie e cole aqui as funções generateCard(), autoMarkCard(), markCard(), e checkForWin() do seu código anterior)
 
-// EXEMPLO de generateCard para lembrar de incluir:
 function generateCard() {
-    // ... lógica de gerar a cartela no bingoCardElement ...
-    // É crucial que esta função esteja aqui!
+    cardNumbers = {};
+    bingoCardElement.innerHTML = '<tr><th>B (1-15)</th><th>I (16-30)</th><th>N (31-45)</th><th>G (46-60)</th><th>O (61-75)</th></tr>';
+    winStatusElement.textContent = 'Sua Cartela'; 
+    winStatusElement.style.color = '#333';
+
+    for (let i = 0; i < 5; i++) {
+        const row = bingoCardElement.insertRow(-1);
+        for (let j = 0; j < 5; j++) {
+            const cell = row.insertCell(-1);
+            const colIndex = j;
+            const min = colIndex * NUMBERS_PER_COLUMN + 1;
+            const max = (colIndex + 1) * NUMBERS_PER_COLUMN;
+            let number;
+
+            if (i === 2 && j === 2) {
+                number = 'Livre';
+                cell.textContent = number;
+                cell.classList.add('marked');
+                cell.style.cursor = 'default';
+            } else {
+                const columnKey = COLUMN_NAMES[j];
+                let columnUsedNumbers = cardNumbers[columnKey] || [];
+                do {
+                    number = Math.floor(Math.random() * (max - min + 1)) + min;
+                } while (columnUsedNumbers.includes(number));
+
+                columnUsedNumbers.push(number);
+                cardNumbers[columnKey] = columnUsedNumbers;
+                
+                cell.textContent = number;
+                cell.id = `cell-${number}`; 
+                cell.addEventListener('click', () => markCard(number, cell));
+            }
+        }
+    }
+    drawnNumbers.forEach(num => autoMarkCard(num));
 }
-// ----------------------------------------------------------------------
+
+function autoMarkCard(number) {
+    const cell = document.getElementById(`cell-${number}`);
+    if (cell && !cell.classList.contains('marked')) {
+        cell.classList.add('marked');
+        checkForWin();
+    }
+}
+
+function markCard(number, cell) {
+    if (drawnNumbers.includes(parseInt(number)) && !cell.classList.contains('marked')) {
+        cell.classList.add('marked');
+        checkForWin();
+    } else if (!drawnNumbers.includes(parseInt(number)) && number !== 'Livre') {
+        alert(`O número ${number} ainda não foi sorteado!`);
+    }
+}
+
+function checkForWin() {
+    const rows = bingoCardElement.rows;
+    let isBingo = false;
+
+    if (rows.length < 6) return; 
+    const cells = Array.from(rows).slice(1).map(row => Array.from(row.cells));
+
+    for (let i = 0; i < 5; i++) {
+        const rowWin = cells[i].every(cell => cell.classList.contains('marked'));
+        const colWin = cells.every(row => row[i].classList.contains('marked'));
+        if (rowWin || colWin) { isBingo = true; break; }
+    }
+    const diag1Win = cells.every((row, i) => row[i].classList.contains('marked'));
+    if (!isBingo && diag1Win) isBingo = true;
+
+    const diag2Win = cells.every((row, i) => row[4 - i].classList.contains('marked'));
+    if (!isBingo && diag2Win) isBingo = true;
+
+    if (isBingo && winStatusElement.textContent !== 'BINGO! AGUARDANDO VERIFICAÇÃO...') {
+        socket.emit('bingo', { playerId: socket.id, card: cardNumbers }); 
+        winStatusElement.textContent = 'BINGO! AGUARDANDO VERIFICAÇÃO...';
+        winStatusElement.style.color = 'blue';
+    } else if (!isBingo && winStatusElement.textContent !== 'BINGO! AGUARDANDO VERIFICAÇÃO...') {
+        winStatusElement.textContent = 'Sua Cartela';
+        winStatusElement.style.color = '#333';
+    }
+}
 
 
 // ----------------------------------------------------------------------
@@ -47,22 +123,31 @@ function generateCard() {
 // ----------------------------------------------------------------------
 
 function updateDisplay(drawn) {
-    // ... (Mantido: Lógica para atualizar o número sorteado e o histórico) ...
+    drawnNumberElement.textContent = drawn;
+
+    historyListElement.innerHTML = ''; 
+    if (drawnNumbers.length === 0) {
+        historyListElement.innerHTML = 'Aguardando início do jogo.';
+        return;
+    }
+    drawnNumbers.forEach(num => {
+        const numElement = document.createElement('div');
+        numElement.textContent = num;
+        historyListElement.appendChild(numElement);
+    });
 }
 
 function initializeGame() {
-    // Esta função é chamada ao reiniciar
     drawnNumbers = [];
     isGameStarted = false;
     drawnNumberElement.textContent = '?';
-    historyListElement.innerHTML = 'Aguardando início do jogo.';
     
-    // O botão 'Iniciar' é re-exibido quando o jogo está pronto
-    if (myUsername) {
+    if (myUsername) { // Só mostra o botão de start se estiver logado
         startButton.style.display = 'block';
+    } else {
+        startButton.style.display = 'none';
     }
     
-    // Gerar cartela padrão
     generateCard(); 
 }
 
@@ -70,28 +155,33 @@ function initializeGame() {
 //                         EVENT LISTENERS
 // ----------------------------------------------------------------------
 
-// NOVO: Lógica de Login
+// 1. Lógica de Login
 joinButton.addEventListener('click', () => {
     let username = usernameInput.value.trim();
-    if (username.length > 2) {
+    if (username.length >= 2) {
         myUsername = username;
         // Envia o nome de usuário para o servidor
         socket.emit('set_username', myUsername);
     } else {
-        alert('Por favor, digite um nome de usuário válido.');
+        alert('Por favor, digite um nome de usuário com pelo menos 2 caracteres.');
     }
 });
 
-// NOVO: Botão Iniciar Jogo
+// 2. Botão Iniciar Jogo
 startButton.addEventListener('click', () => {
-    // Envia o comando para o SERVIDOR iniciar o sorteio automático
     socket.emit('iniciar_jogo');
-    startButton.style.display = 'none'; // Esconde o botão após o clique
+    startButton.style.display = 'none';
 });
 
-// AÇÕES DO JOGO
+// 3. Ações do Jogo
 generateCardButton.addEventListener('click', generateCard);
 resetButton.addEventListener('click', initializeGame);
+
+// 4. Inicializa ao carregar a página
+document.addEventListener('DOMContentLoaded', () => {
+    // A inicialização aqui apenas prepara o DOM
+    // O jogo real começa após o login.
+});
 
 
 // ----------------------------------------------------------------------
@@ -103,8 +193,9 @@ socket.on('username_set', (name) => {
     loginScreen.style.display = 'none';
     gameContent.style.display = 'block';
     console.log(`Logado como: ${name}`);
-    // Exibe o botão de início
-    startButton.style.display = 'block';
+    
+    // Inicia o jogo no cliente após o login
+    initializeGame(); 
 });
 
 // 2. Ouve o estado inicial (ao entrar)
@@ -113,16 +204,15 @@ socket.on('estado_inicial', (data) => {
     isGameStarted = data.gameStarted;
     updateDisplay(data.lastDrawn || '?');
     
-    // Se o jogo já estiver rolando, esconde o botão de início
     if (isGameStarted) {
         startButton.style.display = 'none';
     } else if (myUsername) {
         startButton.style.display = 'block';
     }
 
-    // Atualiza a lista de jogadores ao entrar
     updatePlayerListDisplay(data.players);
-    drawnNumbers.forEach(num => autoMarkCard(num));
+    // Marca na cartela (importante para quem está gerando a cartela depois)
+    drawnNumbers.forEach(num => autoMarkCard(num)); 
 });
 
 // 3. Ouve atualização da lista de jogadores
@@ -130,7 +220,6 @@ socket.on('player_list_update', (playerNames) => {
     updatePlayerListDisplay(playerNames);
 });
 
-// NOVO: Função auxiliar para atualizar a lista
 function updatePlayerListDisplay(playerNames) {
     playerListElement.innerHTML = '';
     if (playerNames.length === 0) {
@@ -149,26 +238,24 @@ socket.on('game_state_update', (data) => {
     isGameStarted = data.gameStarted;
     if (isGameStarted) {
         startButton.style.display = 'none';
-        console.log("Servidor iniciou o sorteio automático!");
+        historyListElement.innerHTML = 'Jogo iniciado. Aguardando sorteio...';
     }
 });
 
-// 5. Ouve o número sorteado (Mantido)
+// 5. Ouve o número sorteado
 socket.on('numero_sorteado', (drawn) => {
-    // ... (Lógica de adicionar número ao histórico e marcar cartela) ...
+    // Adiciona número ao histórico
+    drawnNumbers.push(drawn);
+    drawnNumbers.sort((a, b) => a - b);
+    updateDisplay(drawn); 
+    
+    // Marca na cartela
+    autoMarkCard(drawn);
 });
 
-// 6. Ouve a vitória (Atualizado para mostrar o nome)
+// 6. Ouve a vitória
 socket.on('vencedor', (data) => {
     alert(`FIM DE JOGO! ${data.mensagem}`);
     winStatusElement.textContent = `VENCEDOR: ${data.name}!`;
     winStatusElement.style.color = 'red';
-});
-
-
-// Inicializa a página
-document.addEventListener('DOMContentLoaded', () => {
-    // Se o usuário já tiver o nome definido (em um cenário mais complexo), pularia o login.
-    // Neste caso, apenas gera a cartela ao carregar.
-    generateCard(); 
 });
